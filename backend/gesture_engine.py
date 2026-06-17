@@ -8,9 +8,8 @@ Current gestures:
     - SWIPE_RIGHT  → Advance slide (right arrow)
     - SWIPE_LEFT   → Previous slide (left arrow)
 
-Architecture note: The engine is designed to be extensible.
-Body gestures can be added by creating new recognizer methods
-that consume pose landmarks instead of hand landmarks.
+Architecture note: The engine now uses Pose (body) landmarks 
+to track the arms (wrists) for better long-distance recognition.
 """
 
 import time
@@ -34,34 +33,36 @@ class SwipeState(Enum):
 
 @dataclass
 class SwipeTracker:
-    """Tracks a single swipe gesture through its lifecycle."""
+    """Tracks a single swipe gesture through its lifecycle for BOTH arms."""
     state: SwipeState = SwipeState.IDLE
-    start_x: float = 0.0
+    start_left_x: float = 0.0
+    start_right_x: float = 0.0
     start_time: float = 0.0
     last_gesture_time: float = 0.0
-    history: list[float] = field(default_factory=list)
+    history_left: list[float] = field(default_factory=list)
+    history_right: list[float] = field(default_factory=list)
 
 
 class GestureEngine:
     """
-    Finite State Machine that recognizes gestures from landmark data.
+    Finite State Machine that recognizes gestures from pose landmark data.
 
     The engine uses a 3-state FSM per gesture type:
         IDLE → TRACKING → COOLDOWN → IDLE
 
     Key parameters:
-        - swipe_threshold: Minimum normalized X displacement to count as swipe
+        - swipe_threshold: Minimum normalized X displacement to count as swipe (increased for arm)
         - cooldown_ms: Time to ignore new gestures after one fires (debounce)
-        - max_swipe_duration: Maximum time (s) a swipe can take
+        - max_swipe_duration: Maximum time (s) a swipe can take (enforces speed)
         - min_samples: Minimum tracking samples before evaluating
     """
 
     def __init__(
         self,
-        swipe_threshold: float = 0.15,
+        swipe_threshold: float = 0.25,      # Increased from 0.15 for wider arm movement
         cooldown_ms: int = 800,
-        max_swipe_duration: float = 1.0,
-        min_samples: int = 5,
+        max_swipe_duration: float = 0.7,    # Decreased from 1.0 to require a faster swipe
+        min_samples: int = 4,
     ):
         self._swipe_threshold = swipe_threshold
         self._cooldown_s = cooldown_ms / 1000.0
@@ -79,21 +80,20 @@ class GestureEngine:
         Returns:
             GestureType indicating what gesture was detected (if any).
         """
-        hands = landmarks_data.get("hands", [])
-        if not hands:
+        pose = landmarks_data.get("pose")
+        # MediaPipe Pose has 33 landmarks. 15 is Left Wrist, 16 is Right Wrist.
+        if not pose or len(pose) <= 16:
             self._reset_if_tracking()
             return GestureType.NONE
 
-        # Use the wrist landmark (index 0) of the first detected hand
-        # as the primary tracking point for swipe gestures.
-        wrist = hands[0][0]
-        wrist_x = wrist["x"]
+        left_wrist_x = pose[15]["x"]
+        right_wrist_x = pose[16]["x"]
         now = time.time()
 
-        return self._update_swipe(wrist_x, now)
+        return self._update_swipe(left_wrist_x, right_wrist_x, now)
 
-    def _update_swipe(self, x: float, now: float) -> GestureType:
-        """Run the swipe state machine."""
+    def _update_swipe(self, left_x: float, right_x: float, now: float) -> GestureType:
+        """Run the swipe state machine tracking both arms."""
         t = self._tracker
 
         # --- COOLDOWN state: wait before accepting new gestures ---
@@ -102,45 +102,59 @@ class GestureEngine:
                 t.state = SwipeState.IDLE
             return GestureType.NONE
 
-        # --- IDLE state: start tracking when we see a hand ---
+        # --- IDLE state: start tracking when we see the pose ---
         if t.state == SwipeState.IDLE:
             t.state = SwipeState.TRACKING
-            t.start_x = x
+            t.start_left_x = left_x
+            t.start_right_x = right_x
             t.start_time = now
-            t.history = [x]
+            t.history_left = [left_x]
+            t.history_right = [right_x]
             return GestureType.NONE
 
         # --- TRACKING state: accumulate samples and evaluate ---
-        t.history.append(x)
+        t.history_left.append(left_x)
+        t.history_right.append(right_x)
         elapsed = now - t.start_time
 
-        # Timeout: if the user is just holding their hand still, reset
+        # Timeout: if the user is just holding their arms still, reset
         if elapsed > self._max_swipe_duration:
             self._reset_tracker()
             return GestureType.NONE
 
         # Need minimum samples for a reliable reading
-        if len(t.history) < self._min_samples:
+        if len(t.history_left) < self._min_samples:
             return GestureType.NONE
 
         # Calculate displacement (note: MediaPipe X is mirrored)
         # Camera mirror means: physical right swipe = decreasing X
-        displacement = t.start_x - x
+        displacement_left = t.start_left_x - left_x
+        displacement_right = t.start_right_x - right_x
 
+        # Check if EITHER arm crossed the threshold
+        gesture_left = self._evaluate_arm(t.history_left, displacement_left)
+        gesture_right = self._evaluate_arm(t.history_right, displacement_right)
+
+        # If either arm swiped, fire the event (prioritize right swipe if conflicting)
+        final_gesture = GestureType.NONE
+        if gesture_left != GestureType.NONE:
+            final_gesture = gesture_left
+        if gesture_right != GestureType.NONE:
+            final_gesture = gesture_right
+
+        if final_gesture != GestureType.NONE:
+            t.state = SwipeState.COOLDOWN
+            t.last_gesture_time = now
+            return final_gesture
+
+        return GestureType.NONE
+
+    def _evaluate_arm(self, history: list[float], displacement: float) -> GestureType:
+        """Evaluate a single arm's history for a valid swipe."""
         if abs(displacement) >= self._swipe_threshold:
-            # Check direction consistency: the last few points
-            # should trend in the same direction (noise filter)
-            recent = t.history[-3:]
+            recent = history[-3:]
             if self._is_consistent(recent, displacement > 0):
-                gesture = (
-                    GestureType.SWIPE_RIGHT
-                    if displacement > 0
-                    else GestureType.SWIPE_LEFT
-                )
-                t.state = SwipeState.COOLDOWN
-                t.last_gesture_time = now
-                return gesture
-
+                return GestureType.SWIPE_RIGHT if displacement > 0 else GestureType.SWIPE_LEFT
         return GestureType.NONE
 
     def _is_consistent(self, points: list[float], expect_decrease: bool) -> bool:
@@ -160,4 +174,5 @@ class GestureEngine:
     def _reset_tracker(self) -> None:
         """Return tracker to IDLE."""
         self._tracker.state = SwipeState.IDLE
-        self._tracker.history.clear()
+        self._tracker.history_left.clear()
+        self._tracker.history_right.clear()
