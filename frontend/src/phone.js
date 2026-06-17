@@ -11,7 +11,7 @@ import "./phone.css";
 // Configuration
 // =============================================================================
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8765`;
 const RECONNECT_DELAY_MS = 2000;
 const SEND_INTERVAL_MS = 33; // ~30 Hz
 const MAX_LOG_ENTRIES = 15;
@@ -37,6 +37,10 @@ const flashIcon = document.getElementById("phone-flash-icon");
 const flashLabel = document.getElementById("phone-flash-label");
 const gestureLog = document.getElementById("phone-gesture-log");
 
+// Sensitivity Settings
+const sensSlider = document.getElementById("sensitivity-slider");
+const sensVal = document.getElementById("sensitivity-val");
+
 // =============================================================================
 // State
 // =============================================================================
@@ -45,6 +49,7 @@ const gestureLog = document.getElementById("phone-gesture-log");
 let ws = null;
 let reconnectTimer = null;
 let sendTimer = null;
+let pingTimer = null;
 let latestAccel = { x: 0, y: 0, z: 0 };
 let sensorActive = false;
 
@@ -113,6 +118,21 @@ function sendTelemetry() {
     }));
   }
 }
+
+// =============================================================================
+// Sensitivity
+// =============================================================================
+
+sensSlider.addEventListener("input", (e) => {
+  const val = parseFloat(e.target.value).toFixed(1);
+  sensVal.textContent = val;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: "update_sensitivity",
+      threshold: parseFloat(val)
+    }));
+  }
+});
 
 // =============================================================================
 // Gesture Feedback
@@ -200,10 +220,22 @@ function connect() {
 
   ws.addEventListener("open", () => {
     console.log("[PhoneRemote] Connected");
-    // Identify as phone client
+    // Identify as phone client and send initial sensitivity
     ws.send(JSON.stringify({ type: "phone_init" }));
+    ws.send(JSON.stringify({ 
+      type: "update_sensitivity", 
+      threshold: parseFloat(sensSlider.value) 
+    }));
+    
     setConnected(true);
     startSensor();
+
+    // Start Ping loop
+    pingTimer = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 5000);
   });
 
   ws.addEventListener("message", (event) => {
@@ -222,6 +254,7 @@ function connect() {
   ws.addEventListener("close", () => {
     console.log("[PhoneRemote] Disconnected");
     setConnected(false);
+    if (pingTimer) clearInterval(pingTimer);
     scheduleReconnect();
   });
 

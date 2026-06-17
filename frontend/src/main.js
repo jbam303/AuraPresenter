@@ -12,7 +12,7 @@ import QRCode from "qrcode";
 // Configuration
 // =============================================================================
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8765`;
 const RECONNECT_DELAY_MS = 2000;
 const MAX_LOG_ENTRIES = 20;
 
@@ -264,16 +264,18 @@ function triggerGestureFlash(gesture) {
     FLICK_LEFT: "←",
   };
 
-  gestureFlashIcon.textContent = icons[gesture] || "?";
+  // Re-query the icon from the DOM because replaceChild destroys the previous node
+  const currentIcon = document.getElementById("gesture-flash-icon");
+  if (!currentIcon) return;
+
+  currentIcon.textContent = icons[gesture] || "?";
   gestureFlash.classList.remove("hidden");
   gestureFlash.classList.add("active");
 
-  // Clone and replace to restart animation
-  const clone = gestureFlashIcon.cloneNode(true);
-  gestureFlashIcon.parentNode.replaceChild(clone, gestureFlashIcon);
+  // Clone and replace to restart CSS animation
+  const clone = currentIcon.cloneNode(true);
+  currentIcon.parentNode.replaceChild(clone, currentIcon);
 
-  // Re-bind the reference
-  // (we use the ID to re-acquire)
   setTimeout(() => {
     gestureFlash.classList.remove("active");
     gestureFlash.classList.add("hidden");
