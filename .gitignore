@@ -1,0 +1,24 @@
+# Python Virtual Environment
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js / Vite
+node_modules/
+dist/
+.env
+.env.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# MediaPipe Task Models (Large binaries)
+backend/*.task
+
+# IDEs
+.vscode/
+.idea/

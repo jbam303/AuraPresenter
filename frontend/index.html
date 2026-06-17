@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AuraPresenter — Control presentations with hand gestures using computer vision" />
+    <title>AuraPresenter</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Status Bar -->
+      <header id="status-bar">
+        <div class="status-left">
+          <span class="logo">◈ AuraPresenter</span>
+        </div>
+        <div class="status-right">
+          <div id="connection-indicator" class="indicator disconnected">
+            <span class="indicator-dot"></span>
+            <span id="connection-text">Disconnected</span>
+          </div>
+          <div id="fps-counter" class="stat-badge">
+            <span id="fps-value">0</span> FPS
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main id="main-content">
+        <!-- Canvas Container -->
+        <section id="canvas-section">
+          <div id="canvas-wrapper" class="glass-panel">
+            <canvas id="skeleton-canvas"></canvas>
+            <div id="no-camera-overlay">
+              <div class="overlay-content">
+                <svg class="overlay-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <h2>Waiting for camera feed</h2>
+                <p>Start the backend server to begin tracking</p>
+                <code>cd backend && .venv/bin/python server.py</code>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside id="sidebar">
+          <!-- Gesture Log -->
+          <div class="glass-panel sidebar-panel">
+            <h3 class="panel-title">Gesture Log</h3>
+            <ul id="gesture-log">
+              <li class="log-empty">No gestures detected yet</li>
+            </ul>
+          </div>
+
+          <!-- Hand Status -->
+          <div class="glass-panel sidebar-panel">
+            <h3 class="panel-title">Detection Status</h3>
+            <div id="detection-grid">
+              <div class="detection-card" id="hand-status">
+                <div class="detection-icon">🖐</div>
+                <div class="detection-label">Hands</div>
+                <div class="detection-value" id="hand-count">—</div>
+              </div>
+              <div class="detection-card" id="pose-status">
+                <div class="detection-icon">🧍</div>
+                <div class="detection-label">Body</div>
+                <div class="detection-value" id="pose-detected">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phone Remote -->
+          <div class="glass-panel sidebar-panel">
+            <h3 class="panel-title">Phone Remote</h3>
+            <div id="phone-remote-section">
+              <div id="qr-container">
+                <canvas id="qr-canvas"></canvas>
+              </div>
+              <p id="phone-url" class="phone-url-text">Waiting for server...</p>
+              <div id="phone-remote-status" class="phone-remote-status">
+                <span class="phone-remote-dot"></span>
+                <span id="phone-remote-label">No phone connected</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gesture Guide -->
+          <div class="glass-panel sidebar-panel">
+            <h3 class="panel-title">Gesture Guide</h3>
+            <div class="gesture-guide">
+              <div class="guide-item">
+                <span class="guide-arrow">→</span>
+                <span>Swipe right — Next slide</span>
+              </div>
+              <div class="guide-item">
+                <span class="guide-arrow">←</span>
+                <span>Swipe left — Previous slide</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Gesture Flash Overlay -->
+      <div id="gesture-flash" class="gesture-flash hidden">
+        <span id="gesture-flash-icon"></span>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

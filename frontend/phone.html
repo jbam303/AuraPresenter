@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="description" content="AuraPresenter — Phone Remote Control" />
+    <title>AuraPresenter — Remote</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="phone-app">
+      <!-- Header -->
+      <header id="phone-header">
+        <span class="phone-logo">◈ Aura Remote</span>
+        <div id="phone-connection" class="phone-indicator disconnected">
+          <span class="phone-indicator-dot"></span>
+          <span id="phone-connection-text">Disconnected</span>
+        </div>
+      </header>
+
+      <!-- Main -->
+      <main id="phone-main">
+        <!-- Status Card -->
+        <section id="phone-status-card" class="phone-glass">
+          <div id="phone-ready-state" class="state-waiting">
+            <div class="state-icon" id="state-icon">📱</div>
+            <h1 id="state-title">Connecting...</h1>
+            <p id="state-subtitle">Hold your phone and flick left or right</p>
+          </div>
+        </section>
+
+        <!-- Sensor Data -->
+        <section id="sensor-section" class="phone-glass">
+          <h2 class="phone-section-title">Accelerometer</h2>
+          <div id="sensor-grid">
+            <div class="sensor-axis">
+              <span class="axis-label">X</span>
+              <div class="axis-bar-track">
+                <div class="axis-bar" id="axis-x-bar"></div>
+              </div>
+              <span class="axis-value" id="axis-x-val">0.0</span>
+            </div>
+            <div class="sensor-axis">
+              <span class="axis-label">Y</span>
+              <div class="axis-bar-track">
+                <div class="axis-bar" id="axis-y-bar"></div>
+              </div>
+              <span class="axis-value" id="axis-y-val">0.0</span>
+            </div>
+            <div class="sensor-axis">
+              <span class="axis-label">Z</span>
+              <div class="axis-bar-track">
+                <div class="axis-bar" id="axis-z-bar"></div>
+              </div>
+              <span class="axis-value" id="axis-z-val">0.0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Gesture Flash -->
+        <div id="phone-gesture-flash" class="phone-flash hidden">
+          <span id="phone-flash-icon"></span>
+          <span id="phone-flash-label"></span>
+        </div>
+
+        <!-- Recent Gestures -->
+        <section id="phone-log-section" class="phone-glass">
+          <h2 class="phone-section-title">Recent Gestures</h2>
+          <ul id="phone-gesture-log">
+            <li class="phone-log-empty">Flick your phone to control slides</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/phone.js"></script>
+  </body>
+</html>

@@ -1,0 +1,305 @@
+/* ==========================================================================
+   Gesture Tracker — Phone Remote Styles
+   Mobile-first, touch-optimized, dark theme matching the desktop.
+   ========================================================================== */
+
+:root {
+  --bg-primary: hsl(225, 25%, 6%);
+  --bg-glass: hsla(225, 20%, 14%, 0.6);
+  --border-glass: hsla(225, 30%, 30%, 0.35);
+  --text-primary: hsl(220, 20%, 93%);
+  --text-secondary: hsl(220, 15%, 60%);
+  --text-muted: hsl(220, 10%, 40%);
+  --accent-cyan: hsl(185, 90%, 55%);
+  --accent-cyan-dim: hsla(185, 90%, 55%, 0.15);
+  --accent-purple: hsl(265, 80%, 65%);
+  --accent-green: hsl(155, 70%, 50%);
+  --accent-green-dim: hsla(155, 70%, 50%, 0.15);
+  --accent-red: hsl(0, 75%, 60%);
+  --accent-red-dim: hsla(0, 75%, 60%, 0.15);
+  --font-family: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-panel: 0 4px 30px hsla(0, 0%, 0%, 0.3);
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* --- Glass Panel --- */
+.phone-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  padding: 1.25rem;
+}
+
+/* --- Header --- */
+#phone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: hsla(225, 20%, 10%, 0.9);
+  border-bottom: 1px solid var(--border-glass);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.phone-logo {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.phone-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.phone-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.phone-indicator.connected {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.phone-indicator.connected .phone-indicator-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.phone-indicator.disconnected {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+}
+
+.phone-indicator.disconnected .phone-indicator-dot {
+  background: var(--accent-red);
+}
+
+/* --- Main --- */
+#phone-main {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* --- Status Card --- */
+#phone-status-card {
+  text-align: center;
+  padding: 2rem 1.25rem;
+}
+
+.state-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.75rem;
+  transition: transform 300ms ease;
+}
+
+.state-waiting .state-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+.state-ready .state-icon {
+  animation: none;
+}
+
+#state-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+#state-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* --- Sensor Data --- */
+.phone-section-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+#sensor-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sensor-axis {
+  display: grid;
+  grid-template-columns: 24px 1fr 56px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.axis-label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent-cyan);
+  text-align: center;
+}
+
+.axis-bar-track {
+  height: 8px;
+  background: hsla(225, 20%, 20%, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.axis-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--accent-cyan);
+  border-radius: 4px;
+  transition: width 80ms ease, left 80ms ease;
+  left: 50%;
+  width: 0;
+}
+
+.axis-value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* --- Gesture Flash --- */
+.phone-flash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.phone-flash.hidden {
+  opacity: 0;
+}
+
+.phone-flash.active {
+  opacity: 1;
+  background: hsla(185, 90%, 55%, 0.08);
+}
+
+#phone-flash-icon {
+  font-size: 6rem;
+  color: var(--accent-cyan);
+  filter: drop-shadow(0 0 40px var(--accent-cyan));
+  animation: flash-pop 600ms ease forwards;
+}
+
+#phone-flash-label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin-top: 0.5rem;
+  animation: flash-pop 600ms ease 100ms forwards;
+  opacity: 0;
+}
+
+/* --- Gesture Log --- */
+#phone-gesture-log {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+#phone-gesture-log li {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+}
+
+#phone-gesture-log .phone-log-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#phone-gesture-log .phone-log-entry {
+  display: flex;
+  justify-content: space-between;
+  background: var(--bg-glass);
+  animation: slide-in 300ms ease forwards;
+}
+
+.phone-log-name {
+  font-weight: 500;
+  color: var(--accent-cyan);
+}
+
+.phone-log-time {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* --- Animations --- */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes flash-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  40% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}

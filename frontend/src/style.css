@@ -1,0 +1,581 @@
+/* ==========================================================================
+   Gesture Tracker — Premium Design System
+   ========================================================================== */
+
+/* --- Design Tokens --- */
+:root {
+  /* Palette: Deep space dark with electric accents */
+  --bg-primary: hsl(225, 25%, 6%);
+  --bg-secondary: hsl(225, 20%, 10%);
+  --bg-glass: hsla(225, 20%, 14%, 0.6);
+  --bg-glass-hover: hsla(225, 20%, 18%, 0.7);
+  --border-glass: hsla(225, 30%, 30%, 0.35);
+  --border-glass-subtle: hsla(225, 30%, 25%, 0.2);
+
+  --text-primary: hsl(220, 20%, 93%);
+  --text-secondary: hsl(220, 15%, 60%);
+  --text-muted: hsl(220, 10%, 40%);
+
+  --accent-cyan: hsl(185, 90%, 55%);
+  --accent-cyan-dim: hsla(185, 90%, 55%, 0.15);
+  --accent-purple: hsl(265, 80%, 65%);
+  --accent-purple-dim: hsla(265, 80%, 65%, 0.15);
+  --accent-green: hsl(155, 70%, 50%);
+  --accent-green-dim: hsla(155, 70%, 50%, 0.15);
+  --accent-red: hsl(0, 75%, 60%);
+  --accent-red-dim: hsla(0, 75%, 60%, 0.15);
+  --accent-amber: hsl(38, 90%, 60%);
+
+  /* Skeleton rendering colors */
+  --skeleton-joint: var(--accent-cyan);
+  --skeleton-bone: hsla(185, 80%, 55%, 0.5);
+  --skeleton-hand-joint: var(--accent-purple);
+  --skeleton-hand-bone: hsla(265, 70%, 65%, 0.5);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Borders */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Shadows */
+  --shadow-glow-cyan: 0 0 20px hsla(185, 90%, 55%, 0.2);
+  --shadow-glow-purple: 0 0 20px hsla(265, 80%, 65%, 0.2);
+  --shadow-panel: 0 4px 30px hsla(0, 0%, 0%, 0.3);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+}
+
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+
+/* --- Glass Panel (shared component) --- */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  transition: border-color var(--transition-base);
+}
+
+.glass-panel:hover {
+  border-color: var(--border-glass);
+}
+
+
+/* --- Status Bar --- */
+#status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-glass-subtle);
+  height: 52px;
+}
+
+.status-left .logo {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Connection Indicator */
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all var(--transition-base);
+}
+
+.indicator.connected {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+}
+
+.indicator.connected .indicator-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.indicator.disconnected {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+}
+
+.indicator.disconnected .indicator-dot {
+  background: var(--accent-red);
+}
+
+.stat-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-glass);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+
+#fps-value {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+
+/* --- Main Layout --- */
+#main-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  height: calc(100vh - 52px);
+}
+
+
+/* --- Canvas Section --- */
+#canvas-section {
+  display: flex;
+  align-items: stretch;
+}
+
+#canvas-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    ellipse at center,
+    hsla(225, 30%, 12%, 1) 0%,
+    var(--bg-primary) 70%
+  );
+}
+
+#skeleton-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* No Camera Overlay */
+#no-camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsla(225, 25%, 6%, 0.85);
+  z-index: 2;
+  transition: opacity var(--transition-slow);
+}
+
+#no-camera-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.overlay-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.overlay-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
+  animation: float 3s ease-in-out infinite;
+}
+
+.overlay-content h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.overlay-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.overlay-content code {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--accent-cyan);
+}
+
+
+/* --- Sidebar --- */
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+}
+
+.sidebar-panel {
+  padding: var(--space-md);
+}
+
+.panel-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-md);
+}
+
+
+/* --- Gesture Log --- */
+#gesture-log {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#gesture-log::-webkit-scrollbar {
+  width: 4px;
+}
+
+#gesture-log::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#gesture-log::-webkit-scrollbar-thumb {
+  background: var(--border-glass);
+  border-radius: 2px;
+}
+
+#gesture-log li {
+  font-size: 0.82rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+#gesture-log li.log-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#gesture-log li.log-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-glass);
+  animation: slide-in 300ms ease forwards;
+}
+
+.log-gesture-name {
+  font-weight: 500;
+  color: var(--accent-cyan);
+}
+
+.log-time {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+
+/* --- Detection Grid --- */
+#detection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.detection-card {
+  text-align: center;
+  padding: var(--space-md) var(--space-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-glass-subtle);
+  transition: all var(--transition-base);
+}
+
+.detection-card.active {
+  border-color: var(--accent-cyan);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.detection-icon {
+  font-size: 1.8rem;
+  margin-bottom: var(--space-xs);
+}
+
+.detection-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.detection-value {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.detection-card.active .detection-value {
+  color: var(--accent-cyan);
+}
+
+
+/* --- Gesture Guide --- */
+.gesture-guide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.guide-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.guide-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--accent-purple-dim);
+  color: var(--accent-purple);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+
+/* --- Gesture Flash Overlay --- */
+.gesture-flash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.gesture-flash.hidden {
+  opacity: 0;
+}
+
+.gesture-flash.active {
+  opacity: 1;
+}
+
+#gesture-flash-icon {
+  font-size: 8rem;
+  color: var(--accent-cyan);
+  filter: drop-shadow(0 0 60px var(--accent-cyan));
+  animation: flash-pop 600ms ease forwards;
+}
+
+
+/* --- Animations --- */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes flash-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Skeleton canvas glow when active */
+@keyframes canvas-glow {
+  0%, 100% {
+    box-shadow: inset 0 0 30px hsla(185, 90%, 55%, 0.03);
+  }
+  50% {
+    box-shadow: inset 0 0 50px hsla(185, 90%, 55%, 0.06);
+  }
+}
+
+#canvas-wrapper.tracking {
+  animation: canvas-glow 3s ease-in-out infinite;
+}
+
+
+/* --- Phone Remote Section --- */
+#phone-remote-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+#qr-container {
+  background: white;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#qr-canvas {
+  display: block;
+  width: 140px;
+  height: 140px;
+}
+
+.phone-url-text {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  word-break: break-all;
+}
+
+.phone-remote-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.phone-remote-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all var(--transition-base);
+}
+
+.phone-remote-status.active {
+  color: var(--accent-green);
+}
+
+.phone-remote-status.active .phone-remote-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+/* Phone gesture source indicator in gesture log */
+.log-source {
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.log-source.source-camera {
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+}
+
+.log-source.source-phone {
+  background: var(--accent-purple-dim);
+  color: var(--accent-purple);
+}
