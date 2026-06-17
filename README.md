@@ -26,27 +26,41 @@ Una interfaz de usuario fluida y visualmente impactante.
 
 ---
 
-## 🚀 Requisitos Previos
+## 🚀 Cómo usar AuraPresenter (Usuarios Finales)
 
-- **Para el Backend:** Python 3.11 o superior.
-- **Para el Frontend:** Node.js y `pnpm` instalado (`npm i -g pnpm`).
-- **Sistema Operativo:** El backend actualmente utiliza comandos específicos de macOS (`osascript`) para el control del teclado.
+¡AuraPresenter ahora es una **aplicación de escritorio nativa e independiente**! Ya no necesitas instalar Python ni Node.js para utilizarla.
+
+1. Ve a la sección de **Releases** en GitHub.
+2. Descarga la última versión para tu sistema operativo (ej. `AuraPresenter-mac.zip` o `AuraPresenter-windows.exe`).
+3. Extrae el archivo y ejecuta la aplicación.
+4. Se abrirá una ventana que activará tu cámara automáticamente.
+5. Para usar tu celular como control remoto, asegúrate de estar en la misma red Wi-Fi y escanea el código QR que aparece en la pantalla.
+
+> **Nota para usuarios de Mac:** Al abrir la aplicación por primera vez, macOS te pedirá permisos para usar la Cámara y para controlar el sistema (Accesibilidad) para poder cambiar las diapositivas.
 
 ---
 
-## ⚙️ Instalación y Puesta en Marcha
+## 🛠️ Desarrollo y Compilación (Para Desarrolladores)
 
-### 1. Configuración del Backend (Cámara y Servidor)
+Si deseas modificar el código o compilar la aplicación por ti mismo, AuraPresenter incluye un pipeline de empaquetado automatizado que une el frontend estático de Vite con el backend de Python usando `PyInstaller` y `PyWebView`.
+
+### Requisitos Previos
+
+- Python 3.11 o superior.
+- Node.js y `pnpm` instalado (`npm i -g pnpm`).
+- (Para empaquetar) Sistema Operativo objetivo (Mac, Windows, o Linux).
+
+### Configuración del Entorno
 
 ```bash
-# 1. Entrar a la carpeta del backend
+# 1. Clonar el repositorio y entrar
+git clone https://github.com/jbam303/AuraPresenter.git
+cd AuraPresenter
+
+# 2. Configurar el backend
 cd backend
-
-# 2. Crear y activar el entorno virtual
 python -m venv .venv
-source .venv/bin/activate
-
-# 3. Instalar dependencias
+source .venv/bin/activate  # O .venv\Scripts\activate en Windows
 pip install -r requirements.txt
 ```
 
@@ -55,43 +69,36 @@ pip install -r requirements.txt
 > - [hand_landmarker.task](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
 > - [pose_landmarker.task](https://developers.google.com/mediapipe/solutions/vision/pose_landmarker)
 
-```bash
-# 4. Iniciar el servidor (escuchará en la IP local, puerto 8765)
-python server.py
-```
+### Empaquetado Automático (Build)
 
-### 2. Configuración del Frontend (Panel de Control y Remote)
+En lugar de correr el servidor y el frontend por separado, hemos integrado todo en un script de compilación único.
 
-Abre una **nueva terminal** y ejecuta:
+Desde la raíz del proyecto, ejecuta:
 
 ```bash
-# 1. Entrar a la carpeta del frontend
-cd frontend
-
-# 2. Instalar dependencias con pnpm
-pnpm install
-
-# 3. Iniciar el servidor de desarrollo en la red local
-pnpm dev
+python backend/build.py
 ```
-Haz clic en el enlace local (ej. `http://localhost:5173`) para abrir el panel de control. 
+
+Este script hará lo siguiente:
+1. Compilará el frontend estático con `pnpm run build`.
+2. Empaquetará el servidor Python, los modelos de visión y el HTML/JS resultante en un solo ejecutable usando `PyInstaller`.
+3. (En macOS) Limpiará los atributos extendidos problemáticos (`com.apple.FinderInfo`) y firmará el código localmente de forma automática.
+
+El binario final (ej. `AuraPresenter.app` en Mac o `AuraPresenter.exe` en Windows) quedará guardado en la carpeta `releases/`.
 
 ---
 
-## 📱 Cómo usar el Control Remoto (Celular)
+## 📱 Cómo usar el Control Remoto (Celular) en Desarrollo
 
-Por razones de privacidad, los navegadores modernos (como Google Chrome en Android) bloquean el acceso al acelerómetro (`DeviceMotion`) si la página no tiene un certificado SSL válido (HTTPS). Como este proyecto se ejecuta en una red local (`192.168.x.x`), Chrome lo considerará inseguro. 
-
-Para habilitar los sensores para desarrollo local en **1 minuto**:
+Por razones de privacidad, los navegadores bloquean el acceso al acelerómetro (`DeviceMotion`) en redes locales sin HTTPS. Si modificas el código y pruebas el celular en la misma red local:
 
 1. En tu teléfono Android, abre Google Chrome.
 2. Escribe en la barra de direcciones: `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
-3. En la caja de texto, escribe la IP local exacta que te indica Vite en la consola (Ej: `http://192.168.1.5:5173`).
-4. Cambia el estado a **Enabled**.
-5. Toca el botón azul **Relaunch** en la parte inferior para reiniciar el navegador.
-6. Escanea el código QR que aparece en la pantalla del Panel de Control de tu computadora.
+3. En la caja de texto, escribe la IP local exacta que te indica la consola (Ej: `http://192.168.1.5:5173`).
+4. Cambia el estado a **Enabled** y reinicia Chrome.
+5. Escanea el código QR que aparece en la pantalla de la aplicación.
 
-*¡Listo! Verás las barras del acelerómetro moverse en tiempo real.*
+En la aplicación de tu celular, podrás utilizar el **Slider de Sensibilidad** para configurar cuánta fuerza requiere el latigazo para pasar de diapositiva.
 
 ---
 
@@ -104,7 +111,7 @@ Levanta tu mano hacia la cámara y realiza movimientos firmes de lado a lado.
 
 ### Control por Acelerómetro (Celular)
 Sostén tu celular en la mano.
-- **Flick a la Derecha (Giro rápido de muñeca):** Pasa a la siguiente diapositiva *(Umbral: > 8.0 m/s²)*.
+- **Flick a la Derecha (Giro rápido de muñeca):** Pasa a la siguiente diapositiva.
 - **Flick a la Izquierda:** Vuelve a la diapositiva anterior.
 
 Ambos controles pueden usarse simultáneamente sin interferir el uno con el otro. Cada gesto exitoso iluminará la pantalla del escritorio y dejará un registro en el panel lateral con la procedencia del evento (📱 o 📷).
