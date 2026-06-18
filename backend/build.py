@@ -43,7 +43,11 @@ def build():
 
     # Clean xattrs and sign at the end to prevent Gatekeeper issues
     if platform.system() == 'Darwin':
+        import time
         app_bundle = os.path.join(releases_dir, 'AuraPresenter.app')
+        print("Waiting for disk to sync...")
+        time.sleep(2)
+        subprocess.run("sync", shell=True)
         print("Cleaning extended attributes and signing...")
         run_command(['find', app_bundle, '-name', '.DS_Store', '-delete'], ignore_errors=True)
         run_command(['find', app_bundle, '-name', '._*', '-delete'], ignore_errors=True)
