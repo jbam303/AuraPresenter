@@ -16,6 +16,20 @@
       <header id="status-bar">
         <div class="status-left">
           <span class="logo">◈ AuraPresenter</span>
+          <span class="logo-version">v1.0</span>
+        </div>
+        <div class="status-center">
+          <!-- Gesture Guide (inline, always visible) -->
+          <div class="inline-guide">
+            <div class="guide-chip">
+              <span class="guide-chip-arrow">←</span>
+              <span>Previous</span>
+            </div>
+            <div class="guide-chip">
+              <span>Next</span>
+              <span class="guide-chip-arrow">→</span>
+            </div>
+          </div>
         </div>
         <div class="status-right">
           <div id="connection-indicator" class="indicator disconnected">
@@ -28,9 +42,47 @@
         </div>
       </header>
 
-      <!-- Main Content -->
+      <!-- Main Content: 3-column layout -->
       <main id="main-content">
-        <!-- Canvas Container -->
+        <!-- Left Column: QR + Phone Status -->
+        <aside id="left-panel">
+          <div class="glass-panel qr-panel">
+            <div class="qr-header">
+              <svg class="qr-phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="5" y="2" width="14" height="20" rx="3" />
+                <line x1="12" y1="18" x2="12" y2="18.01" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <div>
+                <h3 class="panel-title">Phone Remote</h3>
+                <p class="qr-hint">Scan to connect</p>
+              </div>
+            </div>
+            <div id="qr-container">
+              <canvas id="qr-canvas"></canvas>
+            </div>
+            <p id="phone-url" class="phone-url-text">Waiting for server...</p>
+            <div id="phone-remote-status" class="phone-remote-status">
+              <span class="phone-remote-dot"></span>
+              <span id="phone-remote-label">No phone connected</span>
+            </div>
+          </div>
+
+          <!-- Detection Cards -->
+          <div id="detection-grid">
+            <div class="glass-panel detection-card" id="hand-status">
+              <div class="detection-icon">🖐</div>
+              <div class="detection-label">Hands</div>
+              <div class="detection-value" id="hand-count">—</div>
+            </div>
+            <div class="glass-panel detection-card" id="pose-status">
+              <div class="detection-icon">🧍</div>
+              <div class="detection-label">Body</div>
+              <div class="detection-value" id="pose-detected">—</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center: Canvas -->
         <section id="canvas-section">
           <div id="canvas-wrapper" class="glass-panel">
             <canvas id="skeleton-canvas"></canvas>
@@ -41,67 +93,18 @@
                 </svg>
                 <h2>Waiting for camera feed</h2>
                 <p>Start the backend server to begin tracking</p>
-                <code>cd backend && .venv/bin/python server.py</code>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Sidebar -->
-        <aside id="sidebar">
-          <!-- Gesture Log -->
-          <div class="glass-panel sidebar-panel">
+        <!-- Right Column: Gesture Log -->
+        <aside id="right-panel">
+          <div class="glass-panel log-panel">
             <h3 class="panel-title">Gesture Log</h3>
             <ul id="gesture-log">
               <li class="log-empty">No gestures detected yet</li>
             </ul>
-          </div>
-
-          <!-- Hand Status -->
-          <div class="glass-panel sidebar-panel">
-            <h3 class="panel-title">Arm / Body Status</h3>
-            <div id="detection-grid">
-              <div class="detection-card" id="hand-status">
-                <div class="detection-icon">🖐</div>
-                <div class="detection-label">Hands</div>
-                <div class="detection-value" id="hand-count">—</div>
-              </div>
-              <div class="detection-card" id="pose-status">
-                <div class="detection-icon">🧍</div>
-                <div class="detection-label">Body</div>
-                <div class="detection-value" id="pose-detected">—</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Phone Remote -->
-          <div class="glass-panel sidebar-panel">
-            <h3 class="panel-title">Phone Remote</h3>
-            <div id="phone-remote-section">
-              <div id="qr-container">
-                <canvas id="qr-canvas"></canvas>
-              </div>
-              <p id="phone-url" class="phone-url-text">Waiting for server...</p>
-              <div id="phone-remote-status" class="phone-remote-status">
-                <span class="phone-remote-dot"></span>
-                <span id="phone-remote-label">No phone connected</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Gesture Guide -->
-          <div class="glass-panel sidebar-panel">
-            <h3 class="panel-title">Gesture Guide</h3>
-            <div class="gesture-guide">
-              <div class="guide-item">
-                <span class="guide-arrow">→</span>
-                <span>Swipe right — Next slide</span>
-              </div>
-              <div class="guide-item">
-                <span class="guide-arrow">←</span>
-                <span>Swipe left — Previous slide</span>
-              </div>
-            </div>
           </div>
         </aside>
       </main>
