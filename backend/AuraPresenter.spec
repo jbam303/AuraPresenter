@@ -49,13 +49,15 @@ coll = COLLECT(
     upx_exclude=[],
     name='AuraPresenter',
 )
-app = BUNDLE(
-    coll,
-    name='AuraPresenter.app',
-    icon=None,
-    bundle_identifier='com.sasor.aurapresenter',
-    info_plist={
-        'NSCameraUsageDescription': 'AuraPresenter necesita la cámara para detectar tus movimientos.',
-        'NSAppleEventsUsageDescription': 'AuraPresenter necesita controlar el teclado para cambiar las diapositivas.'
-    }
-)
+import sys
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        coll,
+        name='AuraPresenter.app',
+        icon=None,
+        bundle_identifier='com.sasor.aurapresenter',
+        info_plist={
+            'NSCameraUsageDescription': 'AuraPresenter necesita la cámara para detectar tus movimientos.',
+            'NSAppleEventsUsageDescription': 'AuraPresenter necesita controlar el teclado para cambiar las diapositivas.'
+        }
+    )
