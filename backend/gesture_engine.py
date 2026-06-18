@@ -32,9 +32,9 @@ class GestureEngine:
 
     def __init__(
         self,
-        swipe_threshold: float = 0.25,      # 25% of screen width required (longer swipes)
-        cooldown_ms: int = 1500,            # 1.5 second cooldown (more forgiving)
-        window_duration: float = 0.35,      # Must happen within 0.35s (faster swipes)
+        swipe_threshold: float = 0.18,      # 18% of screen width (balanced)
+        cooldown_ms: int = 1200,            # 1.2 second cooldown
+        window_duration: float = 0.4,       # 0.4 second window
         min_samples: int = 4,
     ):
         self._swipe_threshold = swipe_threshold
@@ -112,7 +112,7 @@ class GestureEngine:
         velocity = displacement / elapsed_time
 
         # Requerimos una distancia mínima y una velocidad mínima
-        if abs(displacement) >= self._swipe_threshold and abs(velocity) >= 1.0:
+        if abs(displacement) >= self._swipe_threshold and abs(velocity) >= 0.6:
             # Check consistency of the last few frames to avoid noise
             recent_x = [pt[1] for pt in history[-4:]]
             

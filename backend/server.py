@@ -79,15 +79,42 @@ def get_local_ip() -> str:
         return "127.0.0.1"
 
 def press_key_crossplatform(key_name: str) -> None:
-    """Press a key using PyAutoGUI on all platforms."""
+    """Press a key using native OS APIs. Quartz on macOS, pyautogui elsewhere."""
     key_name = key_name.lower()
-    try:
-        import pyautogui
-        pyautogui.press(key_name)
-    except ImportError:
-        logger.error("pyautogui is not installed. Keyboard simulation will not work.")
-    except Exception as e:
-        logger.error(f"Error executing PyAutoGUI: {e}")
+    system = platform.system()
+
+    key_code_map = {
+        "right": 124,
+        "left": 123,
+        "up": 126,
+        "down": 125,
+        "return": 36,
+        "space": 49,
+        "escape": 53,
+    }
+
+    if system == "Darwin":
+        try:
+            from Quartz import CGEventCreateKeyboardEvent, CGEventPost, kCGHIDEventTap
+            code = key_code_map.get(key_name)
+            if code is None:
+                return
+            # Key down
+            event = CGEventCreateKeyboardEvent(None, code, True)
+            CGEventPost(kCGHIDEventTap, event)
+            # Key up
+            event = CGEventCreateKeyboardEvent(None, code, False)
+            CGEventPost(kCGHIDEventTap, event)
+        except Exception as e:
+            logger.error(f"Quartz CGEvent error: {e}")
+    else:
+        try:
+            import pyautogui
+            pyautogui.press(key_name)
+        except ImportError:
+            logger.error("pyautogui is not installed. Keyboard simulation will not work.")
+        except Exception as e:
+            logger.error(f"Error executing PyAutoGUI: {e}")
 
 class AuraPresenterServer:
     """Manages camera loop, phone telemetry, and WebSocket broadcast."""
