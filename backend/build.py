@@ -46,10 +46,10 @@ def build():
         app_bundle = os.path.join(releases_dir, 'AuraPresenter.app')
         print("Cleaning extended attributes and signing...")
         run_command(['find', app_bundle, '-name', '.DS_Store', '-delete'], ignore_errors=True)
-        run_command(['dot_clean', '-m', app_bundle], ignore_errors=True)
-        run_command(['xattr', '-cr', app_bundle], ignore_errors=True)
-        run_command(['xattr', '-d', 'com.apple.FinderInfo', app_bundle], ignore_errors=True)
-        run_command(['xattr', '-d', 'com.apple.FinderInfo', os.path.join(app_bundle, 'Contents')], ignore_errors=True)
+        run_command(['find', app_bundle, '-name', '._*', '-delete'], ignore_errors=True)
+        # Clear attributes recursively
+        subprocess.run(f"xattr -c '{app_bundle}'", shell=True)
+        subprocess.run(f"find '{app_bundle}' \\( -type f -o -type d \\) -exec xattr -c {{}} +", shell=True)
         run_command(['codesign', '-s', '-', '--force', '--deep', app_bundle])
 
     print(f"=== Build Complete! Executable is in {releases_dir} ===")
