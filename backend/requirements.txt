@@ -3,4 +3,4 @@ opencv-python>=4.10.0
 websockets>=13.0
 pywebview>=5.1
 pyautogui>=0.9.54
-
+cryptography>=42.0

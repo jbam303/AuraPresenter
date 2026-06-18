@@ -16,8 +16,11 @@ dist/
 .DS_Store
 Thumbs.db
 
-# MediaPipe Task Models (Large binaries)
-backend/*.task
+# Build artifacts
+releases/
+backend/build/
+backend/.certs/
+.aurapresenter_certs/
 
 # IDEs
 .vscode/

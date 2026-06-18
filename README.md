@@ -88,15 +88,17 @@ El binario final (ej. `AuraPresenter.app` en Mac o `AuraPresenter.exe` en Window
 
 ---
 
-## 📱 Cómo usar el Control Remoto (Celular) en Desarrollo
+## 📱 Cómo usar el Control Remoto (Celular)
 
-Por razones de privacidad, los navegadores bloquean el acceso al acelerómetro (`DeviceMotion`) en redes locales sin HTTPS. Si modificas el código y pruebas el celular en la misma red local:
+AuraPresenter genera un **certificado SSL autofirmado** la primera vez que se ejecuta, permitiendo servir la página del celular vía HTTPS. Esto habilita el acceso al acelerómetro (`DeviceMotion`) sin necesidad de modificar configuraciones del navegador.
 
-1. En tu teléfono Android, abre Google Chrome.
-2. Escribe en la barra de direcciones: `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
-3. En la caja de texto, escribe la IP local exacta que te indica la consola (Ej: `http://192.168.1.5:5173`).
-4. Cambia el estado a **Enabled** y reinicia Chrome.
-5. Escanea el código QR que aparece en la pantalla de la aplicación.
+1. Asegúrate de que tu celular esté conectado a la **misma red Wi-Fi** que la computadora.
+2. Escanea el **código QR** que aparece en la pantalla de AuraPresenter.
+3. Chrome mostrará una advertencia de "conexión no segura" (certificado autofirmado). Toca **Avanzado → Acceder al sitio**.
+4. ¡Listo! El acelerómetro se activará y podrás controlar las diapositivas con movimientos de muñeca.
+
+> [!TIP]
+> Solo necesitas aceptar la advertencia de seguridad **una vez**. Si tu IP cambia, simplemente escanea el nuevo código QR — no hay que configurar nada más.
 
 En la aplicación de tu celular, podrás utilizar el **Slider de Sensibilidad** para configurar cuánta fuerza requiere el latigazo para pasar de diapositiva.
 

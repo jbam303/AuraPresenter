@@ -8,10 +8,13 @@ Supports two client types:
 """
 
 import asyncio
+import ipaddress
 import json
 import logging
+import platform
 import signal
 import socket
+import ssl
 import subprocess
 import time
 import sys
@@ -306,20 +309,107 @@ def get_static_folder() -> str:
     return os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
 
 
+def get_cert_dir() -> str:
+    """Return the directory where SSL certs are stored."""
+    if getattr(sys, 'frozen', False):
+        # When packaged, store certs next to the executable
+        base = os.path.dirname(sys.executable)
+        if sys.platform == 'darwin':
+            # macOS .app bundle: go up to the .app parent directory
+            base = os.path.dirname(os.path.dirname(os.path.dirname(base)))
+        cert_dir = os.path.join(base, '.aurapresenter_certs')
+    else:
+        cert_dir = os.path.join(os.path.dirname(__file__), '.certs')
+    os.makedirs(cert_dir, exist_ok=True)
+    return cert_dir
+
+
+def generate_self_signed_cert() -> tuple[str, str]:
+    """Generate a self-signed SSL certificate if one doesn't exist. Returns (certfile, keyfile)."""
+    cert_dir = get_cert_dir()
+    certfile = os.path.join(cert_dir, 'cert.pem')
+    keyfile = os.path.join(cert_dir, 'key.pem')
+
+    if os.path.exists(certfile) and os.path.exists(keyfile):
+        logger.info("Using existing SSL certificate.")
+        return certfile, keyfile
+
+    logger.info("Generating self-signed SSL certificate...")
+    try:
+        from cryptography import x509
+        from cryptography.x509.oid import NameOID
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        import datetime
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+        subject = issuer = x509.Name([
+            x509.NameAttribute(NameOID.COMMON_NAME, "AuraPresenter Local"),
+        ])
+
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.utcnow())
+            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=3650))
+            .add_extension(
+                x509.SubjectAlternativeName([
+                    x509.IPAddress(ipaddress.IPv4Address("0.0.0.0")),
+                    x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
+                    x509.DNSName("localhost"),
+                ]),
+                critical=False,
+            )
+            .sign(key, hashes.SHA256())
+        )
+
+        with open(keyfile, 'wb') as f:
+            f.write(key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            ))
+        with open(certfile, 'wb') as f:
+            f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+        logger.info(f"SSL certificate generated at {cert_dir}")
+    except ImportError:
+        # Fallback: use openssl CLI
+        logger.info("cryptography not installed, falling back to openssl CLI...")
+        subprocess.run([
+            'openssl', 'req', '-x509', '-newkey', 'rsa:2048',
+            '-keyout', keyfile, '-out', certfile,
+            '-days', '3650', '-nodes',
+            '-subj', '/CN=AuraPresenter Local',
+        ], capture_output=True)
+
+    return certfile, keyfile
+
+
 def start_http_server(port: int):
-    """Run a basic HTTP server to serve frontend static files."""
+    """Run an HTTPS server to serve frontend static files (enables DeviceMotion on phones)."""
     static_dir = get_static_folder()
-    
+    certfile, keyfile = generate_self_signed_cert()
+
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=static_dir, **kwargs)
 
-        # Suppress noisy HTTP logs
         def log_message(self, format, *args):
             pass
 
     httpd = socketserver.ThreadingTCPServer(("0.0.0.0", port), Handler)
-    logger.info(f"Serving static files from {static_dir} at http://0.0.0.0:{port}")
+
+    # Wrap socket with SSL
+    ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
+    httpd.socket = ssl_ctx.wrap_socket(httpd.socket, server_side=True)
+
+    logger.info(f"Serving static files from {static_dir} at https://0.0.0.0:{port}")
     http_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     http_thread.start()
 
@@ -348,7 +438,7 @@ def main() -> None:
     if webview:
         window = webview.create_window(
             'AuraPresenter', 
-            f'http://127.0.0.1:{VITE_PORT}',
+            f'https://127.0.0.1:{VITE_PORT}',
             width=1000,
             height=700,
             background_color='#0c101a' # matches --bg-primary

@@ -403,7 +403,7 @@ function scheduleReconnect() {
 
 function handleServerConfig(config) {
   const { local_ip, vite_port } = config;
-  const url = `http://${local_ip}:${vite_port}/phone.html`;
+  const url = `https://${local_ip}:${vite_port}/phone.html`;
 
   phoneUrl.textContent = url;
 
