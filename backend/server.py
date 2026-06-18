@@ -426,7 +426,12 @@ def main() -> None:
     start_update_thread()
 
     # 1. Start the HTTP and HTTPS static servers
-    start_server(VITE_PORT_HTTP, use_ssl=False)
+    # Skip Python's HTTP server in dev mode because Vite/pnpm dev already runs on 5173.
+    if getattr(sys, 'frozen', False):
+        start_server(VITE_PORT_HTTP, use_ssl=False)
+    else:
+        logger.info("Running in dev mode. Skipping Python HTTP server (Vite is running on 5173).")
+    
     start_server(VITE_PORT_HTTPS, use_ssl=True)
 
     server = AuraPresenterServer()
