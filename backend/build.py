@@ -5,7 +5,9 @@ import platform
 
 def run_command(cmd, cwd=None, ignore_errors=False):
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd)
+    # On Windows, tools like pnpm are .cmd scripts that need shell=True
+    use_shell = platform.system() == 'Windows'
+    result = subprocess.run(cmd, cwd=cwd, shell=use_shell)
     if result.returncode != 0 and not ignore_errors:
         print(f"Error: Command failed with exit code {result.returncode}")
         sys.exit(result.returncode)
