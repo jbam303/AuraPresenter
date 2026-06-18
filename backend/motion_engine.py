@@ -49,6 +49,10 @@ class MotionEngine:
         self._in_cooldown = False
         self._last_gesture_time = 0.0
 
+    def set_threshold(self, threshold: float) -> None:
+        """Update the minimum acceleration threshold."""
+        self._flick_threshold = max(1.0, threshold)
+
     def update(self, telemetry: dict) -> MotionGestureType:
         """
         Feed new telemetry data and get back a gesture event (or NONE).
