@@ -79,39 +79,15 @@ def get_local_ip() -> str:
         return "127.0.0.1"
 
 def press_key_crossplatform(key_name: str) -> None:
-    """Press a key using AppleScript on macOS, or PyAutoGUI on Windows/Linux."""
-    system = platform.system()
-    
-    # Map string like "Right" to "right"
+    """Press a key using PyAutoGUI on all platforms."""
     key_name = key_name.lower()
-    
-    if system == "Darwin":
-        try:
-            key_code_map = {
-                "right": 124,
-                "left": 123,
-                "up": 126,
-                "down": 125,
-                "return": 36,
-                "space": 49,
-                "escape": 53,
-            }
-            code = key_code_map.get(key_name)
-            if code is None:
-                return
-
-            script = f'tell application "System Events" to key code {code}'
-            subprocess.run(["osascript", "-e", script], capture_output=True, timeout=2)
-        except Exception as e:
-            logger.error(f"Error executing AppleScript: {e}")
-    else:
-        try:
-            import pyautogui
-            pyautogui.press(key_name)
-        except ImportError:
-            logger.error("pyautogui is not installed. Keyboard simulation will not work on this OS.")
-        except Exception as e:
-            logger.error(f"Error executing PyAutoGUI: {e}")
+    try:
+        import pyautogui
+        pyautogui.press(key_name)
+    except ImportError:
+        logger.error("pyautogui is not installed. Keyboard simulation will not work.")
+    except Exception as e:
+        logger.error(f"Error executing PyAutoGUI: {e}")
 
 class AuraPresenterServer:
     """Manages camera loop, phone telemetry, and WebSocket broadcast."""
