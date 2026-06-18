@@ -48,9 +48,11 @@ logging.getLogger("websockets").setLevel(logging.WARNING)
 # --- Configuration ---
 WS_HOST = "0.0.0.0"
 WS_PORT = 8765
+WSS_PORT = 8766
 TARGET_FPS = 30
 FRAME_INTERVAL = 1.0 / TARGET_FPS
-VITE_PORT = 5173
+VITE_PORT_HTTP = 5173
+VITE_PORT_HTTPS = 5174
 
 
 # --- Gesture → Key mapping ---
@@ -133,7 +135,7 @@ class AuraPresenterServer:
             "type": "config",
             "local_ip": self._local_ip,
             "ws_port": WS_PORT,
-            "vite_port": VITE_PORT,
+            "vite_port": VITE_PORT_HTTPS,
         }
         try:
             await ws.send(json.dumps(config))
@@ -286,14 +288,20 @@ class AuraPresenterServer:
     async def run(self) -> None:
         """Start the WebSocket server and camera loop."""
         logger.info(f"Starting WebSocket server on ws://{WS_HOST}:{WS_PORT}")
+        logger.info(f"Starting Secure WebSocket server on wss://{WS_HOST}:{WSS_PORT}")
         logger.info(f"LAN IP: {self._local_ip}")
         logger.info(
-            f"Phone URL: http://{self._local_ip}:{VITE_PORT}/phone.html"
+            f"Phone URL: https://{self._local_ip}:{VITE_PORT_HTTPS}/phone.html"
         )
 
+        certfile, keyfile = generate_self_signed_cert()
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
+
         async with serve(self._handler, WS_HOST, WS_PORT):
-            logger.info("Server ready. Waiting for clients...")
-            await self._camera_loop()
+            async with serve(self._handler, WS_HOST, WSS_PORT, ssl=ssl_ctx):
+                logger.info("Server ready. Waiting for clients...")
+                await self._camera_loop()
 
     def shutdown(self) -> None:
         """Signal the camera loop to stop."""
@@ -390,10 +398,9 @@ def generate_self_signed_cert() -> tuple[str, str]:
     return certfile, keyfile
 
 
-def start_http_server(port: int):
-    """Run an HTTPS server to serve frontend static files (enables DeviceMotion on phones)."""
+def start_server(port: int, use_ssl: bool = False):
+    """Run an HTTP/HTTPS server to serve frontend static files."""
     static_dir = get_static_folder()
-    certfile, keyfile = generate_self_signed_cert()
 
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -404,12 +411,15 @@ def start_http_server(port: int):
 
     httpd = socketserver.ThreadingTCPServer(("0.0.0.0", port), Handler)
 
-    # Wrap socket with SSL
-    ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ssl_ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
-    httpd.socket = ssl_ctx.wrap_socket(httpd.socket, server_side=True)
+    if use_ssl:
+        certfile, keyfile = generate_self_signed_cert()
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
+        httpd.socket = ssl_ctx.wrap_socket(httpd.socket, server_side=True)
+        logger.info(f"Serving static files from {static_dir} at https://0.0.0.0:{port}")
+    else:
+        logger.info(f"Serving static files from {static_dir} at http://0.0.0.0:{port}")
 
-    logger.info(f"Serving static files from {static_dir} at https://0.0.0.0:{port}")
     http_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     http_thread.start()
 
@@ -418,8 +428,9 @@ def main() -> None:
     # 0. Start Auto-Updater thread
     start_update_thread()
 
-    # 1. Start the HTTP static server
-    start_http_server(VITE_PORT)
+    # 1. Start the HTTP and HTTPS static servers
+    start_server(VITE_PORT_HTTP, use_ssl=False)
+    start_server(VITE_PORT_HTTPS, use_ssl=True)
 
     server = AuraPresenterServer()
 
@@ -438,7 +449,7 @@ def main() -> None:
     if webview:
         window = webview.create_window(
             'AuraPresenter', 
-            f'https://127.0.0.1:{VITE_PORT}',
+            f'http://127.0.0.1:{VITE_PORT_HTTP}',
             width=1000,
             height=700,
             background_color='#d7e3a4'

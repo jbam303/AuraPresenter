@@ -422,8 +422,30 @@ function handleServerConfig(config) {
 
 
 // =============================================================================
+// Version Auto-Updater
+// =============================================================================
+
+async function fetchLatestVersion() {
+  try {
+    const res = await fetch("https://api.github.com/repos/jbam303/AuraPresenter/releases/latest");
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.tag_name) {
+        const versionEl = document.querySelector(".logo-version");
+        if (versionEl) {
+          versionEl.textContent = data.tag_name;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[AuraPresenter] Failed to fetch latest version:", err);
+  }
+}
+
+// =============================================================================
 // Bootstrap
 // =============================================================================
 
 setConnectionState(false);
 connect();
+fetchLatestVersion();

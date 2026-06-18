@@ -11,7 +11,8 @@ import "./phone.css";
 // Configuration
 // =============================================================================
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:8765`;
+const WS_PORT = window.location.protocol === 'https:' ? 8766 : 8765;
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname}:${WS_PORT}`;
 const RECONNECT_DELAY_MS = 2000;
 const SEND_INTERVAL_MS = 33; // ~30 Hz
 const MAX_LOG_ENTRIES = 15;
