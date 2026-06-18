@@ -14,12 +14,23 @@ import signal
 import socket
 import subprocess
 import time
+import sys
+import os
+import threading
+import http.server
+import socketserver
+
+try:
+    import webview
+except ImportError:
+    webview = None
 
 from websockets.asyncio.server import serve
 
 from vision import VisionProcessor
 from gesture_engine import GestureEngine, GestureType
 from motion_engine import MotionEngine, MotionGestureType
+from updater import start_update_thread
 
 # Configure logging
 logging.basicConfig(
@@ -62,30 +73,40 @@ def get_local_ip() -> str:
     except Exception:
         return "127.0.0.1"
 
+def press_key_crossplatform(key_name: str) -> None:
+    """Press a key using AppleScript on macOS, or PyAutoGUI on Windows/Linux."""
+    system = platform.system()
+    
+    # Map string like "Right" to "right"
+    key_name = key_name.lower()
+    
+    if system == "Darwin":
+        try:
+            key_code_map = {
+                "right": 124,
+                "left": 123,
+                "up": 126,
+                "down": 125,
+                "return": 36,
+                "space": 49,
+                "escape": 53,
+            }
+            code = key_code_map.get(key_name)
+            if code is None:
+                return
 
-def press_key_applescript(key_name: str) -> None:
-    """Simulate a key press using native AppleScript."""
-    key_code_map = {
-        "Right": 124,
-        "Left": 123,
-        "Up": 126,
-        "Down": 125,
-        "Return": 36,
-        "Space": 49,
-        "Escape": 53,
-    }
-    code = key_code_map.get(key_name)
-    if code is None:
-        logger.warning(f"No AppleScript key code for: {key_name}")
-        return
-
-    script = f'tell application "System Events" to key code {code}'
-    subprocess.run(
-        ["osascript", "-e", script],
-        capture_output=True,
-        timeout=2,
-    )
-
+            script = f'tell application "System Events" to key code {code}'
+            subprocess.run(["osascript", "-e", script], capture_output=True, timeout=2)
+        except Exception as e:
+            logger.error(f"Error executing AppleScript: {e}")
+    else:
+        try:
+            import pyautogui
+            pyautogui.press(key_name)
+        except ImportError:
+            logger.error("pyautogui is not installed. Keyboard simulation will not work on this OS.")
+        except Exception as e:
+            logger.error(f"Error executing PyAutoGUI: {e}")
 
 class AuraPresenterServer:
     """Manages camera loop, phone telemetry, and WebSocket broadcast."""
@@ -178,12 +199,20 @@ class AuraPresenterServer:
                             "status": "connected",
                         }))
 
+                    elif msg_type == "ping":
+                        await self._send_to_client(ws, json.dumps({"type": "pong"}))
+
+                    elif msg_type == "update_sensitivity":
+                        threshold = msg.get("threshold", 8.0)
+                        self._motion_engine.set_threshold(threshold)
+                        logger.info(f"Phone sensitivity updated to {threshold}")
+
                     elif msg_type == "telemetry":
                         gesture = self._motion_engine.update(msg)
                         if gesture != MotionGestureType.NONE:
                             key = MOTION_KEY_MAP.get(gesture)
                             if key:
-                                press_key_applescript(key)
+                                press_key_crossplatform(key)
                                 logger.info(
                                     f"Phone Gesture: {gesture.name} → Key: {key}"
                                 )
@@ -236,7 +265,7 @@ class AuraPresenterServer:
                 if gesture != GestureType.NONE:
                     key = CAMERA_KEY_MAP.get(gesture)
                     if key:
-                        press_key_applescript(key)
+                        press_key_crossplatform(key)
                         logger.info(f"Camera Gesture: {gesture.name} → Key: {key}")
 
                 # Only broadcast to viewers (not phones)
@@ -269,20 +298,82 @@ class AuraPresenterServer:
         logger.info("Shutdown signal received.")
 
 
+def get_static_folder() -> str:
+    """Return the path to the built frontend files."""
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        return os.path.join(sys._MEIPASS, 'dist')
+    return os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
+
+
+def start_http_server(port: int):
+    """Run a basic HTTP server to serve frontend static files."""
+    static_dir = get_static_folder()
+    
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=static_dir, **kwargs)
+
+        # Suppress noisy HTTP logs
+        def log_message(self, format, *args):
+            pass
+
+    httpd = socketserver.ThreadingTCPServer(("0.0.0.0", port), Handler)
+    logger.info(f"Serving static files from {static_dir} at http://0.0.0.0:{port}")
+    http_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    http_thread.start()
+
+
 def main() -> None:
+    # 0. Start Auto-Updater thread
+    start_update_thread()
+
+    # 1. Start the HTTP static server
+    start_http_server(VITE_PORT)
+
     server = AuraPresenterServer()
 
-    def signal_handler(sig, frame):
-        server.shutdown()
+    # 2. Start WebSocket and Camera loop in a daemon thread
+    # PyWebView REQUIRES the main thread, so asyncio must run in background
+    def run_asyncio_server():
+        try:
+            asyncio.run(server.run())
+        except Exception as e:
+            logger.error(f"Server loop error: {e}")
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    ws_thread = threading.Thread(target=run_asyncio_server, daemon=True)
+    ws_thread.start()
 
-    try:
-        asyncio.run(server.run())
-    except KeyboardInterrupt:
-        logger.info("Server terminated.")
+    # 3. Create Desktop Window
+    if webview:
+        window = webview.create_window(
+            'AuraPresenter', 
+            f'http://127.0.0.1:{VITE_PORT}',
+            width=1000,
+            height=700,
+            background_color='#0c101a' # matches --bg-primary
+        )
+        
+        # Shutdown cleanly when window closes
+        def on_closed():
+            server.shutdown()
+            os._exit(0)
 
+        window.events.closed += on_closed
+        logger.info("Starting PyWebView...")
+        webview.start()
+    else:
+        logger.warning("pywebview not installed. Running headless. Press Ctrl+C to stop.")
+        def signal_handler(sig, frame):
+            server.shutdown()
+            sys.exit(0)
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            server.shutdown()
 
 if __name__ == "__main__":
     main()

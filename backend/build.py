@@ -3,10 +3,10 @@ import subprocess
 import sys
 import platform
 
-def run_command(cmd, cwd=None):
+def run_command(cmd, cwd=None, ignore_errors=False):
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd)
-    if result.returncode != 0:
+    if result.returncode != 0 and not ignore_errors:
         print(f"Error: Command failed with exit code {result.returncode}")
         sys.exit(result.returncode)
 
@@ -43,10 +43,10 @@ def build():
     if platform.system() == 'Darwin':
         app_bundle = os.path.join(releases_dir, 'AuraPresenter.app')
         print("Cleaning extended attributes and signing...")
-        run_command(['find', app_bundle, '-name', '.DS_Store', '-delete'])
-        run_command(['xattr', '-cr', app_bundle])
-        run_command(['xattr', '-d', 'com.apple.FinderInfo', app_bundle])
-        run_command(['xattr', '-d', 'com.apple.FinderInfo', os.path.join(app_bundle, 'Contents')])
+        run_command(['find', app_bundle, '-name', '.DS_Store', '-delete'], ignore_errors=True)
+        run_command(['xattr', '-cr', app_bundle], ignore_errors=True)
+        run_command(['xattr', '-d', 'com.apple.FinderInfo', app_bundle], ignore_errors=True)
+        run_command(['xattr', '-d', 'com.apple.FinderInfo', os.path.join(app_bundle, 'Contents')], ignore_errors=True)
         run_command(['codesign', '-s', '-', '--force', '--deep', app_bundle])
 
     print(f"=== Build Complete! Executable is in {releases_dir} ===")
