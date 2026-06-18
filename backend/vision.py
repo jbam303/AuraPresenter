@@ -40,10 +40,6 @@ class VisionProcessor:
     def start(self) -> None:
         """Initialize camera and MediaPipe processors."""
         self._cap = cv2.VideoCapture(self._camera_index)
-        if not self._cap.isOpened():
-            raise RuntimeError(
-                f"Cannot open camera at index {self._camera_index}"
-            )
 
         # Hand Landmarker — VIDEO mode for sequential frame processing
         hand_options = HandLandmarkerOptions(
@@ -76,8 +72,13 @@ class VisionProcessor:
 
     def read_frame(self) -> tuple[bool, "cv2.Mat | None"]:
         """Read a single frame from the camera."""
-        if not self._cap:
-            return False, None
+        if not self._cap or not self._cap.isOpened():
+            # Retry opening if it failed (e.g. waiting for Mac permissions)
+            import time
+            time.sleep(0.5)
+            self._cap = cv2.VideoCapture(self._camera_index)
+            if not self._cap.isOpened():
+                return False, None
         return self._cap.read()
 
     def process(self, frame: "cv2.Mat") -> dict:
