@@ -441,7 +441,7 @@ def main() -> None:
             f'https://127.0.0.1:{VITE_PORT}',
             width=1000,
             height=700,
-            background_color='#0c101a' # matches --bg-primary
+            background_color='#d7e3a4'
         )
         
         # Shutdown cleanly when window closes
