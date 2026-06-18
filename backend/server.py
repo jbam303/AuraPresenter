@@ -36,10 +36,15 @@ from motion_engine import MotionEngine, MotionGestureType
 from updater import start_update_thread
 
 # Configure logging
+log_file = "/Users/sasor/Desktop/Proyectos/AuraPresenter/debug.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_file, mode="a", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logger = logging.getLogger("AuraPresenter")
 logging.getLogger("websockets").setLevel(logging.WARNING)
@@ -78,16 +83,21 @@ def get_local_ip() -> str:
     except Exception:
         return "127.0.0.1"
 
-def press_key_crossplatform(key_name: str) -> None:
-    """Press a key using PyAutoGUI on all platforms."""
+def press_key_crossplatform(key_name: str) -> str | None:
+    """Press a key using PyAutoGUI on all platforms. Returns error message if failed."""
     key_name = key_name.lower()
     try:
         import pyautogui
         pyautogui.press(key_name)
+        return None
     except ImportError:
-        logger.error("pyautogui is not installed. Keyboard simulation will not work.")
+        err = "pyautogui is not installed. Keyboard simulation will not work."
+        logger.error(err)
+        return err
     except Exception as e:
-        logger.error(f"Error executing PyAutoGUI: {e}")
+        err = f"Error executing PyAutoGUI: {e}"
+        logger.error(err)
+        return err
 
 class AuraPresenterServer:
     """Manages camera loop, phone telemetry, and WebSocket broadcast."""
@@ -192,11 +202,17 @@ class AuraPresenterServer:
                         gesture = self._motion_engine.update(msg)
                         if gesture != MotionGestureType.NONE:
                             key = MOTION_KEY_MAP.get(gesture)
+                            err = None
                             if key:
-                                press_key_crossplatform(key)
+                                err = press_key_crossplatform(key)
                                 logger.info(
                                     f"Phone Gesture: {gesture.name} → Key: {key}"
                                 )
+                                if err:
+                                    await self._send_to_client(ws, json.dumps({
+                                        "type": "error",
+                                        "message": err
+                                    }))
 
                             # Notify the phone that sent the gesture
                             await self._send_to_client(ws, json.dumps({
@@ -205,10 +221,13 @@ class AuraPresenterServer:
                             }))
 
                             # Notify all desktop viewers
-                            await self._broadcast_viewers(json.dumps({
+                            viewer_msg = {
                                 "type": "phone_gesture",
                                 "gesture": gesture.name,
-                            }))
+                            }
+                            if err:
+                                viewer_msg["error"] = err
+                            await self._broadcast_viewers(json.dumps(viewer_msg))
 
                 except json.JSONDecodeError:
                     pass
@@ -246,7 +265,9 @@ class AuraPresenterServer:
                 if gesture != GestureType.NONE:
                     key = CAMERA_KEY_MAP.get(gesture)
                     if key:
-                        press_key_crossplatform(key)
+                        err = press_key_crossplatform(key)
+                        if err:
+                            message["error"] = err
                         logger.info(f"Camera Gesture: {gesture.name} → Key: {key}")
 
                 # Only broadcast to viewers (not phones)

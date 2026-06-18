@@ -343,9 +343,45 @@ function setConnectionState(connected) {
 // WebSocket Connection
 // =============================================================================
 
+function addErrorLogEntry(message) {
+  const emptyEntry = gestureLog.querySelector(".log-empty");
+  if (emptyEntry) emptyEntry.remove();
+
+  const li = document.createElement("li");
+  li.className = "log-entry";
+  li.style.color = "#ae2012"; // red color from palette
+  li.style.backgroundColor = "rgba(174, 32, 18, 0.1)";
+  li.style.borderLeft = "3px solid #ae2012";
+
+  const nameWrapper = document.createElement("span");
+  nameWrapper.style.display = "flex";
+  nameWrapper.style.alignItems = "center";
+  nameWrapper.style.gap = "8px";
+
+  const name = document.createElement("span");
+  name.className = "log-gesture-name";
+  name.textContent = `Error: ${message}`;
+  nameWrapper.appendChild(name);
+
+  const time = document.createElement("span");
+  time.className = "log-time";
+  time.textContent = new Date().toLocaleTimeString();
+
+  li.appendChild(nameWrapper);
+  li.appendChild(time);
+
+  gestureLog.insertBefore(li, gestureLog.firstChild);
+
+  while (gestureLog.children.length > MAX_LOG_ENTRIES) {
+    gestureLog.removeChild(gestureLog.lastChild);
+  }
+}
+
 function connect() {
-  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-    return;
+  if (ws) {
+    try {
+      ws.close();
+    } catch (e) {}
   }
 
   ws = new WebSocket(WS_URL);
@@ -365,11 +401,19 @@ function connect() {
 
       if (data.type === "frame") {
         renderFrame(data);
+        if (data.error) {
+          addErrorLogEntry(data.error);
+        }
       } else if (data.type === "config") {
         handleServerConfig(data);
       } else if (data.type === "phone_gesture") {
         triggerGestureFlash(data.gesture);
         addGestureLogEntry(data.gesture, "phone");
+        if (data.error) {
+          addErrorLogEntry(data.error);
+        }
+      } else if (data.type === "error") {
+        addErrorLogEntry(data.message);
       }
     } catch (err) {
       console.error("[AuraPresenter] Failed to parse message:", err);
