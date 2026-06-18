@@ -52,8 +52,10 @@ def build():
         run_command(['find', app_bundle, '-name', '.DS_Store', '-delete'], ignore_errors=True)
         run_command(['find', app_bundle, '-name', '._*', '-delete'], ignore_errors=True)
         # Clear attributes recursively
-        subprocess.run(f"xattr -c '{app_bundle}'", shell=True)
-        subprocess.run(f"find '{app_bundle}' \\( -type f -o -type d \\) -exec xattr -c {{}} +", shell=True)
+        res1 = subprocess.run(f"xattr -c '{app_bundle}'", shell=True, capture_output=True)
+        res2 = subprocess.run(f"find '{app_bundle}' \\( -type f -o -type d \\) -exec xattr -c {{}} +", shell=True, capture_output=True)
+        print(f"xattr root result: {res1.returncode}, stderr: {res1.stderr.decode('utf-8', errors='ignore')}")
+        print(f"xattr recursive result: {res2.returncode}, stderr: {res2.stderr.decode('utf-8', errors='ignore')}")
         run_command(['codesign', '-s', '-', '--force', '--deep', app_bundle])
 
     print(f"=== Build Complete! Executable is in {releases_dir} ===")
